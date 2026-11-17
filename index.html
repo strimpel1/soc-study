@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Study videos</title>
+<style>
+:root{--bg:#070b14;--panel:#0f1728;--panel2:#141f36;--line:#243352;--ink:#eaf0ff;--dim:#8a97b8;--acc:#4de1ff;--ok:#5cf2a8;--bad:#ff5672}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+body{background:radial-gradient(900px 500px at 15% -10%,rgba(77,225,255,.12),transparent 60%),var(--bg);background-attachment:fixed}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:10px 16px;border-radius:10px}
+button:hover{border-color:var(--acc)} button.primary{background:var(--acc);border-color:var(--acc);color:#04121a;font-weight:700}
+button:disabled{opacity:.5;cursor:default}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 70px}
+.kick{font:600 13px/1 ui-monospace,Consolas,monospace;letter-spacing:.16em;color:var(--acc);text-transform:uppercase}
+h1{font-size:30px;margin:8px 0 4px;letter-spacing:-.01em}
+.muted{color:var(--dim)} .small{font-size:13px}
+/* lock */
+#lock{min-height:100vh;display:grid;place-items:center;padding:20px}
+#lock form{width:100%;max-width:400px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px}
+#lock input[type=password]{width:100%;margin:18px 0 12px;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:#0a101d;color:var(--ink);font:inherit}
+#lock input[type=password]:focus{outline:2px solid var(--acc);outline-offset:1px}
+#lock label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--dim);margin-bottom:16px}
+#lock button{width:100%}
+#err{color:var(--bad);min-height:22px;font-size:14px;margin-top:10px}
+/* library */
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.bar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:14px 0 24px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--ok));border-radius:99px;transition:width .4s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;display:block;width:100%}
+.card:hover{border-color:var(--acc)}
+.card .th{position:relative;aspect-ratio:16/9;background:#0a101d}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card .dur{position:absolute;right:8px;bottom:8px;background:rgba(7,11,20,.85);padding:2px 8px;border-radius:6px;font:600 12px ui-monospace,Consolas,monospace}
+.card .done{position:absolute;left:8px;top:8px;background:var(--ok);color:#04121a;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700}
+.card .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--acc)}
+.card .t{padding:12px 14px 14px;font-weight:600;line-height:1.3}
+.card .t b{display:block;font:600 12px ui-monospace,Consolas,monospace;letter-spacing:.14em;color:var(--acc);margin-bottom:5px}
+/* player */
+#player .back{margin-bottom:14px}
+.stage{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:16/9;border:1px solid var(--line)}
+.stage video{width:100%;height:100%;display:block;background:#000}
+.loading{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:var(--panel);padding:20px}
+.loading .lbar{width:min(360px,70vw);height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:14px auto 8px}
+.loading .lbar i{display:block;height:100%;width:0;background:var(--acc)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.row .sp{flex:1}
+select{font:inherit;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <form id="form" autocomplete="off">
+    <div class="kick">Private</div>
+    <h1>Study videos</h1>
+    <div class="muted small">Enter the password to unlock.</div>
+    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" autofocus>
+    <label><input id="remember" type="checkbox"> Keep me unlocked on this device</label>
+    <button class="primary" id="go" type="submit">Unlock</button>
+    <div id="err"></div>
+  </form>
+</div>
+
+<div class="wrap" id="library" hidden>
+  <header class="top">
+    <div><div class="kick">SOC Analyst path</div><h1>15 modules</h1><div class="muted small" id="sum"></div></div>
+    <button id="lockBtn">Lock</button>
+  </header>
+  <div class="bar"><i id="barFill"></i></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="wrap" id="player" hidden>
+  <button class="back" id="backBtn">← All modules</button>
+  <div class="kick" id="pKick"></div>
+  <h1 id="pTitle"></h1>
+  <div class="stage">
+    <video id="video" controls playsinline hidden></video>
+    <div class="loading" id="loading"><div><div id="lText">Unlocking video…</div><div class="lbar"><i id="lFill"></i></div><div class="muted small" id="lSub"></div></div></div>
+  </div>
+  <div class="row">
+    <button id="prevBtn">← Previous</button>
+    <button id="nextBtn" class="primary">Next →</button>
+    <span class="sp"></span>
+    <label class="muted small">Speed
+      <select id="speed"><option>0.75</option><option selected>1</option><option>1.25</option><option>1.5</option><option>1.75</option><option>2</option></select>
+    </label>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const toB64 = u => btoa(String.fromCharCode(...u));
+const LS = { get(k){ try{ return JSON.parse(localStorage.getItem("soc."+k)); }catch(e){ return null; } },
+             set(k,v){ try{ localStorage.setItem("soc."+k, JSON.stringify(v)); }catch(e){} },
+             del(k){ try{ localStorage.removeItem("soc."+k); }catch(e){} } };
+let SITE = null, KEY = null, LIST = [], cur = -1, curUrl = null, loadToken = 0;
+const progress = LS.get("progress") || {};
+
+async function deriveKey(password){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password.normalize("NFKC")), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(SITE.salt), iterations:SITE.iter, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, true, ["decrypt"]);
+}
+async function openChunk(nonce, i, last, data){
+  const iv = new Uint8Array(12); iv.set(nonce, 0); new DataView(iv.buffer).setUint32(8, i);
+  const aad = new Uint8Array(5); new DataView(aad.buffer).setUint32(0, i); aad[4] = last ? 1 : 0;
+  return crypto.subtle.decrypt({name:"AES-GCM", iv, additionalData:aad}, KEY, data);
+}
+// fetch + decrypt chunk by chunk as the bytes arrive
+async function openFile(url, total, onProgress){
+  const res = await fetch(url, {cache:"force-cache"});
+  if (!res.ok) throw new Error("download failed (" + res.status + ")");
+  const size = total || Number(res.headers.get("Content-Length")) || 0;
+  const reader = res.body.getReader();
+  const SEALED = SITE.chunk + 16;
+  let buf = new Uint8Array(0), nonce = null, idx = 0, got = 0; const out = [];
+  const push = async (final) => {
+    if (!nonce){ if (buf.length < 8) return; nonce = buf.slice(0,8); buf = buf.slice(8); }
+    while (buf.length > SEALED || (final && buf.length > 0)){
+      const take = Math.min(SEALED, buf.length);
+      const last = final && take === buf.length;
+      out.push(await openChunk(nonce, idx++, last, buf.slice(0, take)));
+      buf = buf.slice(take);
+    }
+  };
+  for(;;){
+    const {done, value} = await reader.read();
+    if (done) break;
+    const n = new Uint8Array(buf.length + value.length); n.set(buf); n.set(value, buf.length); buf = n;
+    got += value.length; if (onProgress) onProgress(got, size);
+    await push(false);
+  }
+  await push(true);
+  return out;
+}
+
+async function unlock(key){
+  KEY = key;
+  const parts = await openFile("data/index.bin");
+  LIST = JSON.parse(new TextDecoder().decode(await new Blob(parts).arrayBuffer()));
+  $("lock").hidden = true; show("library");
+}
+$("form").addEventListener("submit", async e => {
+  e.preventDefault(); $("err").textContent = ""; $("go").disabled = true; $("go").textContent = "Unlocking…";
+  try {
+    const key = await deriveKey($("pw").value);
+    await unlock(key);
+    if ($("remember").checked) LS.set("key", toB64(new Uint8Array(await crypto.subtle.exportKey("raw", key))));
+    $("pw").value = "";
+  } catch(err){ KEY = null; $("err").textContent = err.name === "OperationError" ? "Wrong password." : "Could not unlock: " + err.message; }
+  $("go").disabled = false; $("go").textContent = "Unlock";
+});
+
+const fmt = s => Math.floor(s/60) + ":" + String(Math.round(s%60)).padStart(2,"0");
+function renderLibrary(){
+  const done = LIST.filter(m => (progress[m.n]||{}).done).length;
+  $("sum").textContent = `${done} of ${LIST.length} watched · ${Math.round(LIST.reduce((a,m)=>a+m.duration,0)/60)} minutes in total`;
+  $("barFill").style.width = (100*done/LIST.length) + "%";
+  $("grid").innerHTML = "";
+  LIST.forEach((m, i) => {
+    const p = progress[m.n] || {};
+    const b = document.createElement("button"); b.className = "card";
+    b.innerHTML = `<div class="th"><img alt="" loading="lazy"><span class="dur">${fmt(m.duration)}</span>${p.done?'<span class="done">Watched</span>':""}${!p.done&&p.t?`<span class="prog" style="width:${Math.min(100,100*p.t/m.duration)}%"></span>`:""}</div><div class="t"><b>MODULE ${String(m.n).padStart(2,"0")}</b></div>`;
+    b.querySelector("img").src = m.thumb;
+    b.querySelector(".t").appendChild(document.createTextNode(m.title));
+    b.onclick = () => play(i);
+    $("grid").appendChild(b);
+  });
+}
+function show(view){
+  $("library").hidden = view !== "library"; $("player").hidden = view !== "player";
+  if (view === "library"){ stop(); renderLibrary(); window.scrollTo(0,0); }
+}
+function stop(){
+  loadToken++; const v = $("video"); v.pause(); v.removeAttribute("src"); v.load(); v.hidden = true;
+  if (curUrl){ URL.revokeObjectURL(curUrl); curUrl = null; }
+}
+async function play(i){
+  stop(); cur = i; const m = LIST[i], token = loadToken;
+  show("player");
+  $("pKick").textContent = "Module " + String(m.n).padStart(2,"0") + " of " + LIST.length; $("pTitle").textContent = m.title;
+  $("prevBtn").disabled = i === 0; $("nextBtn").disabled = i === LIST.length - 1;
+  $("loading").hidden = false; $("lFill").style.width = "0"; $("lText").textContent = "Unlocking video…"; $("lSub").textContent = "";
+  try {
+    const parts = await openFile("data/" + m.file, m.size, (got, size) => {
+      if (token !== loadToken) return;
+      $("lFill").style.width = (size ? Math.min(100, 100*got/size) : 0) + "%";
+      $("lSub").textContent = (got/1048576).toFixed(0) + " of " + (m.size/1048576).toFixed(0) + " MB";
+    });
+    if (token !== loadToken) return;
+    curUrl = URL.createObjectURL(new Blob(parts, {type:"video/mp4"}));
+    const v = $("video"); v.src = curUrl; v.hidden = false; $("loading").hidden = true;
+    v.playbackRate = Number($("speed").value);
+    const p = progress[m.n] || {};
+    v.addEventListener("loadedmetadata", () => { if (p.t && !p.done && p.t < v.duration - 8) v.currentTime = p.t; v.play().catch(()=>{}); }, {once:true});
+  } catch(err){ if (token === loadToken){ $("lText").textContent = "Could not load this video: " + err.message; } }
+}
+let lastSave = 0;
+$("video").addEventListener("timeupdate", () => {
+  const v = $("video"), m = LIST[cur]; if (!m || !v.duration) return;
+  if (Date.now() - lastSave < 3000) return; lastSave = Date.now();
+  const p = progress[m.n] = progress[m.n] || {}; p.t = Math.floor(v.currentTime);
+  if (v.currentTime > v.duration - 6) p.done = true;
+  LS.set("progress", progress);
+});
+$("video").addEventListener("ended", () => { const m = LIST[cur]; (progress[m.n] = progress[m.n] || {}).done = true; LS.set("progress", progress); });
+$("speed").onchange = () => { $("video").playbackRate = Number($("speed").value); LS.set("speed", $("speed").value); };
+$("backBtn").onclick = () => show("library");
+$("prevBtn").onclick = () => cur > 0 && play(cur - 1);
+$("nextBtn").onclick = () => cur < LIST.length - 1 && play(cur + 1);
+$("lockBtn").onclick = () => { LS.del("key"); KEY = null; LIST = []; stop(); $("library").hidden = true; $("player").hidden = true; $("lock").hidden = false; $("pw").focus(); };
+
+(async () => {
+  if (LS.get("speed")) $("speed").value = LS.get("speed");
+  try { SITE = await (await fetch("data/site.json", {cache:"no-cache"})).json(); }
+  catch(e){ $("err").textContent = "The site data is missing."; return; }
+  const saved = LS.get("key");
+  if (saved){
+    try { await unlock(await crypto.subtle.importKey("raw", b64(saved), {name:"AES-GCM"}, true, ["decrypt"])); }
+    catch(e){ LS.del("key"); KEY = null; }
+  }
+})();
+</script>
+</body>
+</html>
