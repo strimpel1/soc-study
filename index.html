@@ -141,8 +141,18 @@ async function openFile(url, total, onProgress){
   return out;
 }
 
+// streaming through the service worker (falls back to full download if it is not available)
+let SW = false;
+function sendKey(){ const c = navigator.serviceWorker && navigator.serviceWorker.controller; if (c && KEY) c.postMessage({type:"key", key:KEY, chunk:SITE.chunk}); }
+if ("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).then(() => {
+    const ok = () => { SW = !!navigator.serviceWorker.controller; sendKey(); };
+    ok(); navigator.serviceWorker.addEventListener("controllerchange", ok);
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener("message", e => { if ((e.data||{}).type === "needkey") sendKey(); });
+}
 async function unlock(key){
-  KEY = key;
+  KEY = key; sendKey();
   const parts = await openFile("data/index.bin");
   LIST = JSON.parse(new TextDecoder().decode(await new Blob(parts).arrayBuffer()));
   $("lock").hidden = true; show("library");
@@ -188,6 +198,19 @@ async function play(i){
   $("pKick").textContent = "Module " + String(m.n).padStart(2,"0") + " of " + LIST.length; $("pTitle").textContent = m.title;
   $("prevBtn").disabled = i === 0; $("nextBtn").disabled = i === LIST.length - 1;
   $("loading").hidden = false; $("lFill").style.width = "0"; $("lText").textContent = "Unlocking video…"; $("lSub").textContent = "";
+  const v0 = $("video");
+  const start = v => { v.playbackRate = Number($("speed").value); const p = progress[m.n] || {};
+    v.addEventListener("loadedmetadata", () => { if (p.t && !p.done && p.t < v.duration - 8) v.currentTime = p.t; v.play().catch(()=>{}); }, {once:true}); };
+  if (SW && navigator.serviceWorker.controller){
+    sendKey();
+    const ok = await new Promise(res => {
+      v0.addEventListener("loadedmetadata", () => res(true), {once:true});
+      v0.addEventListener("error", () => res(false), {once:true});
+      start(v0); v0.src = "stream/" + m.file + ".mp4?size=" + m.size; v0.hidden = false; $("loading").hidden = true;
+    });
+    if (ok || token !== loadToken) return;
+    v0.removeAttribute("src"); v0.load(); v0.hidden = true; $("loading").hidden = false; // streaming failed: download instead
+  }
   try {
     const parts = await openFile("data/" + m.file, m.size, (got, size) => {
       if (token !== loadToken) return;
@@ -196,10 +219,7 @@ async function play(i){
     });
     if (token !== loadToken) return;
     curUrl = URL.createObjectURL(new Blob(parts, {type:"video/mp4"}));
-    const v = $("video"); v.src = curUrl; v.hidden = false; $("loading").hidden = true;
-    v.playbackRate = Number($("speed").value);
-    const p = progress[m.n] || {};
-    v.addEventListener("loadedmetadata", () => { if (p.t && !p.done && p.t < v.duration - 8) v.currentTime = p.t; v.play().catch(()=>{}); }, {once:true});
+    const v = $("video"); start(v); v.src = curUrl; v.hidden = false; $("loading").hidden = true;
   } catch(err){ if (token === loadToken){ $("lText").textContent = "Could not load this video: " + err.message; } }
 }
 let lastSave = 0;
@@ -215,7 +235,7 @@ $("speed").onchange = () => { $("video").playbackRate = Number($("speed").value)
 $("backBtn").onclick = () => show("library");
 $("prevBtn").onclick = () => cur > 0 && play(cur - 1);
 $("nextBtn").onclick = () => cur < LIST.length - 1 && play(cur + 1);
-$("lockBtn").onclick = () => { LS.del("key"); KEY = null; LIST = []; stop(); $("library").hidden = true; $("player").hidden = true; $("lock").hidden = false; $("pw").focus(); };
+$("lockBtn").onclick = () => { LS.del("key"); KEY = null; if (navigator.serviceWorker && navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({type:"lock"}); LIST = []; stop(); $("library").hidden = true; $("player").hidden = true; $("lock").hidden = false; $("pw").focus(); };
 
 (async () => {
   if (LS.get("speed")) $("speed").value = LS.get("speed");
